@@ -1,10 +1,6 @@
 from distutils.core import setup, Extension
 
-sttypingmodule = Extension('sttyping',
-                           define_macros=[('MAJOR_VERSION', '1'),
-                                          ('MINOR_VERSION', '0')],
-                           include_dirs=['/usr/include/python3.7'],
-                           sources=['sttypingmodule.c']
+sttypingmodule = Extension('sttyping', sources=['sttypingmodule.c']
                            )
 
 
