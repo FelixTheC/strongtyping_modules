@@ -118,7 +118,7 @@ long unionElementTypes(PyObject *obj, PyObject *typeObj) {
 
         if (PyObject_HasAttrString(typeArg, "__args__") == 0 && ttype == 0) {
             result += PyObject_IsInstance(obj, typeArg);
-        } else {
+        } else if (PyObject_HasAttrString(typeArg, "__origin__")) {
 
             PyObject *baseType = PyObject_GetAttrString(typeArg, "__origin__");
 
@@ -132,7 +132,15 @@ long unionElementTypes(PyObject *obj, PyObject *typeObj) {
             } else if (ttype == 2 && PyObject_IsInstance(obj, baseType) == 1) {
                 long recursiveResult = tupleElementTypes(obj, typeArg);
                 result += recursiveResult;
+            } else if (ttype == 3 && PyObject_IsInstance(obj, baseType) == 1) {
+                long recursiveResult = dictElementTypes(obj, typeArg);
+                result += recursiveResult;
+            } else if (ttype == 4 && PyObject_IsInstance(obj, baseType) == 1) {
+                long recursiveResult = setElementTypes(obj, typeArg);
+                result += recursiveResult;
             }
+        } else {
+            result += PyObject_IsInstance(obj, typeArg);
         }
     }
     return result;
@@ -166,10 +174,13 @@ long setElementTypes(PyObject *originalObj, PyObject *typeObj) {
                         long tmp = unionOrOther(type, setElement, supType);
                         if (tmp > 1) {
                             result += tmp;
-                        } else if (tmp == 0) {
-                            return 0;
                         } else {
                             continue;
+                        }
+                    } else if (PyObject_HasAttrString(type, "_name")) {
+                        PyObject *_name = PyObject_GetAttrString(type, "_name");
+                        if (strcmp(_name->ob_type->tp_name, "Any") == 0) {
+                            return 1;
                         }
                     } else {
                         result += PyObject_IsInstance(setElement, type);
@@ -196,18 +207,56 @@ long dictElementTypes(PyObject *obj, PyObject *typeObj) {
 
         PyObject *objItems = PyDict_Items(obj);
 
+        long result = 0;
+
         for (int i = 0; i < objSize; i++) {
             PyObject *objItem = PyList_GetItem(objItems, i);
             PyObject *key = PyTuple_GetItem(objItem, 0);
             PyObject *value = PyTuple_GetItem(objItem, 1);
 
-            if (PyObject_IsInstance(key, keyTypes) == 0 ||
-                PyObject_IsInstance(value, valueTypes) == 0 ) {
-                return 0;
+            if (PyObject_HasAttrString(keyTypes, "__args__")) {
+                int supType = whichSubtype(key);
+
+                long tmp = unionOrOther(keyTypes, key, supType);
+
+                if (tmp > 1) {
+                    result += tmp;
+                } else {
+                    continue;
+                }
+
+            } else if (PyObject_HasAttrString(keyTypes, "_name")) {
+                PyObject *_name = PyObject_GetAttrString(keyTypes, "_name");
+                if (strcmp(_name->ob_type->tp_name, "Any") == 0) {
+                    return 1;
+                }
+            } else {
+                if (PyObject_IsInstance(key, keyTypes) == 0) return 0;
+            }
+
+            if (PyObject_HasAttrString(valueTypes, "__args__")) {
+                int supType = whichSubtype(value);
+                long tmp = unionOrOther(valueTypes, value, supType);
+                if (tmp >= 1) {
+                    result += tmp;
+                } else {
+                    continue;
+                }
+
+            } else if (PyObject_HasAttrString(valueTypes, "_name")) {
+                PyObject *_name = PyObject_GetAttrString(valueTypes, "_name");
+                if (strcmp(_name->ob_type->tp_name, "Any") == 0) {
+                    return 1;
+                }
+            } else {
+                if (PyObject_IsInstance(value, valueTypes) == 0) return 0;
             }
         }
-
-        return 1;
+        if (result >= objSize) {
+            return 1;
+        } else {
+            return 0;
+        }
 
     } else {
         return checkTypes(obj, typeObj);
@@ -244,20 +293,12 @@ long tupleElementTypes(PyObject *obj, PyObject *typeObj) {
                     } else {
                         continue;
                     }
-//                    PyObject *newBaseType = PyObject_GetAttrString(tupleElementType, "__origin__");
-//
-//                    if (strcmp(newBaseType->ob_type->tp_name, "_SpecialForm") == 0) {
-//                        result += unionElementTypes(tupleElement, tupleElementType);
-//                    } else {
-//                        if (supType == 0) {
-//                            continue;
-//                        } else {
-//                            if (checkSubtypes(tupleElement, tupleElementType, supType) == 0) {
-//                                return 0;
-//                            }
-//                        }
-//                    }
 
+                } else if (PyObject_HasAttrString(tupleElementType, "_name")) {
+                    PyObject *_name = PyObject_GetAttrString(tupleElementType, "_name");
+                    if (strcmp(_name->ob_type->tp_name, "Any") == 0) {
+                        return 1;
+                    }
                 } else {
                     if (PyObject_IsInstance(tupleElement, tupleElementType) == 0) {
                         return 0;
@@ -284,11 +325,10 @@ long listElementTypes(PyObject *obj, PyObject *typeObj) {
 
         long result = 0;
         for(int i = 0; i < objSize; i++) {
-            int supType = 0;
 
             PyObject *listElem = obj->ob_type->tp_as_sequence->sq_item(obj, i);
 
-            supType = whichSubtype(listElem);
+            int supType = whichSubtype(listElem);
 
             for(int j = 0; j < typeArgSize; j++) {
                 PyObject *type = PyTuple_GetItem(typeArgs, j);
@@ -302,17 +342,12 @@ long listElementTypes(PyObject *obj, PyObject *typeObj) {
                     } else {
                         continue;
                     }
-//                    PyObject *baseType = PyObject_GetAttrString(type, "__origin__");
-//
-//                    if (strcmp(baseType->ob_type->tp_name, "_SpecialForm") == 0) {
-//                        result += unionElementTypes(listElem, type);
-//                    } else {
-//                        if (supType == 0) {
-//                            continue;
-//                        } else {
-//                            result += checkSubtypes(listElem, type, supType);
-//                        }
-//                    }
+
+                } else if (PyObject_HasAttrString(type, "_name")) {
+                    PyObject *_name = PyObject_GetAttrString(type, "_name");
+                    if (strcmp(_name->ob_type->tp_name, "Any") == 0) {
+                        return 1;
+                    }
                 } else {
                     result += PyObject_IsInstance(listElem, type);
                 }
