@@ -1,7 +1,7 @@
-from distutils.core import setup, Extension
+from setuptools import setup
+from setuptools import Extension
 
-sttypingmodule = Extension('sttyping', sources=['sttypingmodule.c']
-                           )
+sttypingmodule = Extension('sttyping', sources=['sttypingmodule.c'])
 
 
 setup(name="sttyping",
