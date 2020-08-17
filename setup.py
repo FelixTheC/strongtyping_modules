@@ -11,12 +11,11 @@ except (ImportError, NameError):
 
 
 setup(name='strongtyping_modules',
-      version='0.0.4.1b',
+      version='0.0.4.2b',
       description='Utils for strongtyping.',
       author='Felix Eisenmenger',
       author_email='fberndt87@gmail.com',
-      ext_modules=cythonize('strongtyping_modules.pyx',
-                            compiler_directives={'language_level': 3, 'embedsignature': True}),
+      ext_modules=ext_modules,
       zip_safe=False,
       packages=find_packages(),
       classifiers=[
