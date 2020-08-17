@@ -4,7 +4,3 @@
 @created: 17.08.20
 @author: felix
 """
-__all__ = (
-    'install'
-)
-
