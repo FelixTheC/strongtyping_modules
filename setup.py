@@ -1,5 +1,13 @@
+from setuptools import find_packages
 from setuptools import setup
-from Cython.Build import cythonize
+
+try:
+    from Cython.Build import cythonize
+
+    ext_modules = cythonize('modules/strongtyping_modules.pyx',
+                            compiler_directives={'language_level': 3, 'embedsignature': True})
+except ImportError:
+    ext_modules = None
 
 
 setup(name='strongtyping_modules',
@@ -7,7 +15,12 @@ setup(name='strongtyping_modules',
       description='Utils for strongtyping.',
       author='Felix Eisenmenger',
       author_email='fberndt87@gmail.com',
-      ext_modules=cythonize('strongtyping_modules.pyx'),
+      ext_modules=cythonize('strongtyping_modules.pyx',
+                            compiler_directives={'language_level': 3, 'embedsignature': True}),
       zip_safe=False,
-      install_requires=('Cython==0.29.21', )
+      packages=find_packages(),
+      classifiers=[
+            'Programming Language :: Python :: 3',
+            'License :: OSI Approved :: MIT License',
+      ],
       )
