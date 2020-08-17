@@ -6,12 +6,12 @@ try:
 
     ext_modules = cythonize('modules/strongtyping_modules.pyx',
                             compiler_directives={'language_level': 3, 'embedsignature': True})
-except ImportError:
+except (ImportError, NameError):
     ext_modules = None
 
 
 setup(name='strongtyping_modules',
-      version='0.0.4b',
+      version='0.0.4.1b',
       description='Utils for strongtyping.',
       author='Felix Eisenmenger',
       author_email='fberndt87@gmail.com',
