@@ -11,7 +11,7 @@ except ImportError:
 
 
 setup(name='strongtyping_modules',
-      version='0.0.3b',
+      version='0.0.4b',
       description='Utils for strongtyping.',
       author='Felix Eisenmenger',
       author_email='fberndt87@gmail.com',
