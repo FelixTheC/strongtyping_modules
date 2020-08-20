@@ -25,4 +25,7 @@ setup(name='strongtyping_modules',
             'Programming Language :: Python :: 3',
             'License :: OSI Approved :: MIT License',
       ],
+      install_requires=[
+            'Cython==0.29.21'
+      ]
       )
