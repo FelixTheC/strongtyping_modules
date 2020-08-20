@@ -7,6 +7,21 @@
 from __future__ import print_function
 
 
+cdef int matches_origin(object obj, object type_obj):
+    cdef object type_origin
+    cdef str type_origin_name
+
+    type_origin = getattr(type_obj, '__origin__')
+
+    if hasattr(type_origin, '_name'):
+        type_origin_name = type_origin._name
+
+        if type_origin_name == 'Union' or type_origin_name == 'Any':
+            return 1
+
+    return isinstance(obj, type_origin)
+
+
 cdef int which_subtype(object element):
     cdef int sub_type = 0;
     cdef str element_name
@@ -96,7 +111,9 @@ cdef int element_check(object obj, object type_obj):
 cpdef int dict_elements(object obj, object type_obj):
     cdef object type_args
     cdef object key_type_args
+    cdef object type_key_type_args
     cdef object value_type_args
+    cdef object type_value_type_args
 
     cdef object key_element
     cdef object value_element
@@ -107,37 +124,44 @@ cpdef int dict_elements(object obj, object type_obj):
     cdef int obj_len = len(obj)
 
     if hasattr(type_obj, '__args__'):
+
+        if matches_origin(obj, type_obj) == 0:
+            return 0
+
         type_args = getattr(type_obj, '__args__')
         key_type_args = type_args[0]
         value_type_args = type_args[1]
+        type_key_type_args = which_subtype(key_type_args)
+        type_value_type_args = which_subtype(value_type_args)
 
         for key_element in obj.keys():
             if hasattr(key_type_args, '__args__'):
-                key_result += element_check(key_element, key_type_args)
+                key_result += sub_type_result(key_element, key_type_args, type_key_type_args)
             else:
                 key_result += isinstance(key_element, key_type_args)
 
         for value_element in obj.values():
             if hasattr(value_type_args, '__args__'):
-                value_result += element_check(value_element, value_type_args)
+                value_result += sub_type_result(value_element, value_type_args, type_value_type_args)
             else:
                 value_result += isinstance(value_element, value_type_args)
 
         return key_result >= obj_len and value_result >= obj_len
     else:
-        return isinstance(type_obj, dict)
+        return isinstance(obj, type_obj)
 
 
 
 cpdef int set_elements(object obj, object type_obj):
-    cdef object type_args
     cdef object set_element
-    cdef object type_arg
     cdef int result = 0
     cdef int tmp = 0
     cdef int ttype
 
     if hasattr(type_obj, '__args__'):
+
+        if matches_origin(obj, type_obj) == 0:
+            return 0
 
         for set_element in obj:
             tmp = element_check(set_element, type_obj)
@@ -147,7 +171,7 @@ cpdef int set_elements(object obj, object type_obj):
 
         return result >= len(obj)
     else:
-        return isinstance(obj, set)
+        return isinstance(obj, type_obj)
 
 
 cpdef int tuple_elements(object obj, object type_obj):
@@ -158,12 +182,16 @@ cpdef int tuple_elements(object obj, object type_obj):
     cdef int ttype
 
     if hasattr(type_obj, '__args__'):
+
+        if matches_origin(obj, type_obj) == 0:
+            return 0
+
         type_args = getattr(type_obj, '__args__')
 
         if len(obj) == len(type_args) and isinstance(obj, tuple):
             for tuple_element, type_arg in zip(obj, type_args):
 
-                ttype = which_subtype(tuple_element)
+                ttype = which_subtype(type_arg)
 
                 if ttype == 0:
                     result += isinstance(tuple_element, type_arg)
@@ -175,20 +203,19 @@ cpdef int tuple_elements(object obj, object type_obj):
         else:
             return 0
     else:
-        return isinstance(type_obj, tuple)
+        return isinstance(obj, type_obj)
 
 
 cpdef int list_elements(object obj, object type_obj):
-    cdef object type_args
     cdef object list_element
-    cdef object type_arg
     cdef int result = 0
     cdef int tmp = 0
     cdef int ttype
 
     if hasattr(type_obj, '__args__'):
 
-        type_args = getattr(type_obj, '__args__')
+        if matches_origin(obj, type_obj) == 0:
+            return 0
 
         for list_element in obj:
             tmp = element_check(list_element, type_obj)
@@ -198,4 +225,4 @@ cpdef int list_elements(object obj, object type_obj):
 
         return result >= len(obj)
     else:
-        return isinstance(obj, list)
+        return isinstance(obj, type_obj)
