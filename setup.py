@@ -20,7 +20,7 @@ README = (HERE / "README.md").read_text()
 
 
 setup(name='strongtyping_modules',
-      version='0.0.4.4b',
+      version='0.0.5',
       description='Utils for strongtyping.',
       author='Felix Eisenmenger',
       author_email='fberndt87@gmail.com',
