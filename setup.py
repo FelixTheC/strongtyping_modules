@@ -1,3 +1,5 @@
+import pathlib
+
 from setuptools import find_packages
 from setuptools import setup
 
@@ -10,11 +12,20 @@ except (ImportError, NameError):
       ext_modules = None
 
 
+# The directory containing this file
+HERE = pathlib.Path(__file__).parent
+
+# The text of the README file
+README = (HERE / "README.md").read_text()
+
+
 setup(name='strongtyping_modules',
       version='0.0.4.4b',
       description='Utils for strongtyping.',
       author='Felix Eisenmenger',
       author_email='fberndt87@gmail.com',
+      long_description=README,
+      long_description_content_type="text/markdown",
       ext_modules=ext_modules,
       zip_safe=False,
       packages=find_packages(),
