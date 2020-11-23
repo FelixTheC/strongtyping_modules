@@ -6,6 +6,15 @@
 """
 from __future__ import print_function
 
+from typing import _GenericAlias
+
+cdef int not_supported = -999
+
+cdef int instance_check_supported(object obj):
+    cdef int allowed = 1
+    if _GenericAlias in obj.__class__.__mro__:
+        allowed = 0
+    return allowed
 
 cdef int matches_origin(object obj, object type_obj):
     cdef object type_origin
@@ -36,6 +45,8 @@ cdef int which_subtype(object element):
             sub_type = 3
         if element_name == 'Set':
             sub_type = 4
+        if element_name == 'Literal':
+            sub_type = 5
         if element_name == 'Any':
             sub_type = -2
         if element_name is None:
@@ -45,7 +56,8 @@ cdef int which_subtype(object element):
                         sub_type = -1
                     if element.__origin__._name == 'Any':
                         return -2
-
+                    if element.__origin__._name == 'Literal':
+                        return 5
     return sub_type
 
 
@@ -59,9 +71,11 @@ cdef int sub_type_result(object obj, object type_obj, int subtype):
     if subtype == 2:
         result += tuple_elements(obj, type_obj)
     if subtype == 3:
-        pass
+        result += dict_elements(obj, type_obj)
     if subtype == 4:
         result += set_elements(obj, type_obj)
+    if subtype == 5:
+        result += literal_elements(obj, type_obj)
 
     return result
 
@@ -77,9 +91,13 @@ cdef int union_element(object obj, object type_obj):
             ttype = which_subtype(type_arg)
 
             if ttype == 0:
+                if instance_check_supported(type_arg) == 0:
+                    return not_supported
                 result += isinstance(obj, type_arg)
             elif ttype == -2:
                 return 1
+            elif ttype == not_supported:
+                return not_supported
             else:
                 sub_type_result(obj, type_obj, ttype)
     else:
@@ -103,6 +121,8 @@ cdef int element_check(object obj, object type_obj):
             result += isinstance(obj, type_arg)
         elif ttype == -2:
             return -2
+        elif ttype == not_supported:
+            return not_supported
         else:
             result += sub_type_result(obj, type_arg, ttype)
     return result
@@ -151,7 +171,6 @@ cpdef int dict_elements(object obj, object type_obj):
         return isinstance(obj, type_obj)
 
 
-
 cpdef int set_elements(object obj, object type_obj):
     cdef object set_element
     cdef int result = 0
@@ -167,6 +186,8 @@ cpdef int set_elements(object obj, object type_obj):
             tmp = element_check(set_element, type_obj)
             if tmp == -2:
                 return 1
+            elif tmp == not_supported:
+                return not_supported
             result += tmp
 
         return result >= len(obj)
@@ -197,6 +218,8 @@ cpdef int tuple_elements(object obj, object type_obj):
                     result += isinstance(tuple_element, type_arg)
                 elif ttype == -2:
                     result += 1
+                elif ttype == not_supported:
+                    return not_supported
                 else:
                     result += sub_type_result(tuple_element, type_arg, ttype)
             return result >= len(obj)
@@ -221,8 +244,20 @@ cpdef int list_elements(object obj, object type_obj):
             tmp = element_check(list_element, type_obj)
             if tmp == -2:
                 return 1
+            elif tmp == not_supported:
+                return not_supported
             result += tmp
 
         return result >= len(obj)
     else:
         return isinstance(obj, type_obj)
+
+
+cpdef int literal_elements(object obj, object type_obj):
+    cdef object type_args
+
+    if hasattr(type_obj, '__args__'):
+        type_args = getattr(type_obj, '__args__')
+        return obj in type_args
+    else:
+        return 0
