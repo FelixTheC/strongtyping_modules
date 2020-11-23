@@ -249,7 +249,6 @@ cpdef int literal_elements(object obj, object type_obj):
 
     if hasattr(type_obj, '__args__'):
         type_args = getattr(type_obj, '__args__')
-        print(str(obj) + ' -> ' + str(type_args))
         return obj in type_args
     else:
         return 0
