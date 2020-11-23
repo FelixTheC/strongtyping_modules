@@ -19,7 +19,7 @@ HERE = pathlib.Path(__file__).parent
 README = (HERE / "README.md").read_text()
 
 setup(name='strongtyping_modules',
-      version='0.1.2',
+      version='0.1.3',
       description='Utils for strongtyping.',
       author='Felix Eisenmenger',
       author_email='fberndt87@gmail.com',
