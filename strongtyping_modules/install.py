@@ -8,7 +8,7 @@ import pathlib
 import subprocess
 
 
-def install():
-    module = pathlib.Path(__file__).parent.joinpath('strongtyping_modules.pyx')
-    p = subprocess.Popen(['cythonize', '-a', '-i', str(module)])
+def install(filename: str = 'strongtyping_modules.pyx'):
+    module = pathlib.Path(__file__).parent.joinpath(filename)
+    p = subprocess.Popen(['cythonize', '-a', '-i', '-3', str(module)])
     p.wait()
