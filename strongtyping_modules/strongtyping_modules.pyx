@@ -6,15 +6,9 @@
 """
 from __future__ import print_function
 
-from typing import _GenericAlias
 
 cdef int not_supported = -999
 
-cdef int instance_check_supported(object obj):
-    cdef int allowed = 1
-    if _GenericAlias in obj.__class__.__mro__:
-        allowed = 0
-    return allowed
 
 cdef int matches_origin(object obj, object type_obj):
     cdef object type_origin
@@ -89,17 +83,14 @@ cdef int union_element(object obj, object type_obj):
         type_args = getattr(type_obj, '__args__')
         for type_arg in type_args:
             ttype = which_subtype(type_arg)
-
             if ttype == 0:
-                if instance_check_supported(type_arg) == 0:
-                    return not_supported
                 result += isinstance(obj, type_arg)
             elif ttype == -2:
                 return 1
             elif ttype == not_supported:
                 return not_supported
             else:
-                sub_type_result(obj, type_obj, ttype)
+                result += sub_type_result(obj, type_arg, ttype)
     else:
         result += isinstance(obj, type_obj)
 
@@ -246,8 +237,8 @@ cpdef int list_elements(object obj, object type_obj):
                 return 1
             elif tmp == not_supported:
                 return not_supported
-            result += tmp
-
+            else:
+                result += tmp
         return result >= len(obj)
     else:
         return isinstance(obj, type_obj)
@@ -258,6 +249,7 @@ cpdef int literal_elements(object obj, object type_obj):
 
     if hasattr(type_obj, '__args__'):
         type_args = getattr(type_obj, '__args__')
+        print(str(obj) + ' -> ' + str(type_args))
         return obj in type_args
     else:
         return 0
