@@ -9,7 +9,7 @@ and by __factor 13__ for more complex/multiple function parameters.
 - therefore a C-Compiler is required https://cython.readthedocs.io/en/latest/src/quickstart/install.html
 - when both requirements are available run somewhere in your project (once)
 ```python
-from strongtyping_modules import install
+from strongtyping_modules.install import install
 
 install()
 ```
