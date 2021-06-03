@@ -52,6 +52,13 @@ cdef int which_subtype(object element):
                         return -2
                     if element.__origin__._name == 'Literal':
                         return 5
+
+    if hasattr(element, '__str__'):
+        try:
+            if element.__str__() == 'Ellipsis':
+                return 6
+        except TypeError:
+            return sub_type
     return sub_type
 
 
@@ -186,13 +193,34 @@ cpdef int set_elements(object obj, object type_obj):
         return isinstance(obj, type_obj)
 
 
+cdef int ellipsis_inside(object type_obj):
+    cdef object element
+    cdef int result
+
+    for element in type_obj:
+        result = which_subtype(element)
+        if result == 6:
+            return 6
+    return 0
+
+cdef int validate_tuple_elements(object tuple_element, object type_arg):
+    ttype = which_subtype(type_arg)
+    if ttype == 0:
+        return isinstance(tuple_element, type_arg)
+    elif ttype == -2:
+        return 1
+    elif ttype == not_supported:
+        return not_supported
+    else:
+        return sub_type_result(tuple_element, type_arg, ttype)
+
 cpdef int tuple_elements(object obj, object type_obj):
     cdef object type_args
     cdef object tuple_element
     cdef object type_arg
     cdef int result = 0
     cdef int ttype
-
+    cdef int tmp
     if hasattr(type_obj, '__args__'):
 
         if matches_origin(obj, type_obj) == 0:
@@ -200,24 +228,21 @@ cpdef int tuple_elements(object obj, object type_obj):
 
         type_args = getattr(type_obj, '__args__')
 
-        if len(obj) == len(type_args) and isinstance(obj, tuple):
-            for tuple_element, type_arg in zip(obj, type_args):
-
-                ttype = which_subtype(type_arg)
-
-                if ttype == 0:
-                    result += isinstance(tuple_element, type_arg)
-                elif ttype == -2:
-                    result += 1
-                elif ttype == not_supported:
-                    return not_supported
-                else:
-                    result += sub_type_result(tuple_element, type_arg, ttype)
-            return result >= len(obj)
+        if isinstance(obj, tuple):
+            if ellipsis_inside(type_args) == 6:
+                for tuple_element in obj:
+                    result += validate_tuple_elements(tuple_element, type_args[0])
+                return result >= len(obj)
+            elif len(obj) == len(type_args):
+                for tuple_element, type_arg in zip(obj, type_args):
+                    result += validate_tuple_elements(tuple_element, type_arg)
+                return result >= len(obj)
         else:
             return 0
     else:
-        return isinstance(obj, type_obj)
+        for tuple_element, type_arg in zip(obj, type_obj):
+            result += validate_tuple_elements(tuple_element, type_arg)
+        return result >= len(obj)
 
 
 cpdef int list_elements(object obj, object type_obj):
