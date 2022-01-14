@@ -29,6 +29,8 @@ cdef int which_subtype(object element):
     cdef int sub_type = 0;
     cdef str element_name
 
+    if hasattr(element, 'is_typed_dict'):
+        sub_type = 30
     if hasattr(element, '_name'):
         element_name = element._name
         if element_name == 'List':
@@ -77,6 +79,8 @@ cdef int sub_type_result(object obj, object type_obj, int subtype):
         result += set_elements(obj, type_obj)
     if subtype == 5:
         result += literal_elements(obj, type_obj)
+    if subtype == 30:
+        result += typeddict_element(obj, type_obj)
 
     return result
 
@@ -277,3 +281,21 @@ cpdef int literal_elements(object obj, object type_obj):
         return obj in type_args
     else:
         return 0
+
+
+cpdef int typeddict_element(object obj, object type_obj):
+    cdef int total = 0
+    cdef int result = 0
+    cdef int ttype = 0
+    cdef dict required_fields = getattr(type_obj, '__annotations__')
+
+    for field in required_fields.keys():
+        ttype = which_subtype(required_fields[field])
+        if ttype == 0:
+            result = isinstance(obj[field], required_fields[field])
+        else:
+            result = sub_type_result(obj[field], required_fields[field], ttype)
+        if result == -2:
+            return -2
+        total += result
+    return total
